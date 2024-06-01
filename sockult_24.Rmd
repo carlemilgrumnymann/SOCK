@@ -1,0 +1,280 @@
+---
+title: "sockult_24"
+author: "Anne Christine Vig Jensen"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+#setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+install.packages("kableExtra")
+library(kableExtra)
+```
+
+```{r load files}
+setwd("/Users/annechristinevig/Desktop/sockult_24")
+
+df_blinding <- read.csv("blinding_plot.csv")
+df_no_int <- read.csv("no_int_plot.csv")
+df_parental <- read.csv("parental_plot.csv")
+df_quota <- read.csv("quota_plot.csv")
+#df_vali <- read.csv("vali_plot.csv")
+```
+
+```{r renaming loop}
+# List of data frame names
+df_names_org <- c("df_blinding", "df_no_int", "df_parental", "df_quota")
+
+# Loop over each data frame name to rename the first column to 'id'
+for(df_name in df_names_org) {
+  # Get the data frame
+  df <- get(df_name)
+  
+  # Rename the first column to 'id'
+  colnames(df)[1] <- "id"
+  
+  # Rename the 3rd column to 'month'
+  colnames(df)[3] <- "month"
+  
+  #Removing 'levels" from 'positions', and converting levels into a numeric column containing     only the numbers of levels 
+  df$position <- as.numeric(gsub("Level ", "", as.character(df$position)))
+
+  # Assign the modified data frame back to its original name
+  assign(df_name, df)
+}
+```
+ 
+# 5 year difference 
+
+##From month/tick 59 = 5 years 
+(from python = 0 index)
+```{r loop 5th year}
+# loop for creating datasets  with data from the 5th year 
+for(df_name in df_names_org) {
+
+  # Get the data frame
+  df <- get(df_name)
+
+  # Filter the data frame to include only rows where 'month' is 59 
+  filtered_df <- df %>% filter(month == 59)
+  
+  #Filtering positions so we get the three highest levels (1,2,3)
+  filtered_df <- filtered_df %>% filter(position <= 3)
+
+  # Create a new name ending with "_5y"
+  new_name <- paste0(df_name, "_5y")
+  
+  # Assign the filtered data frame to the new name
+  assign(new_name, filtered_df)
+}
+```
+
+##subtracting percentage women from no interventions with intervensions
+
+looping over dataframes with 5ys, subtract df_no_inv_5ys$percent_women with df's$percent_women to get difference. then save as _5ys_sub
+```{r loop no intervention 5 years, subtracted}
+
+df_names_5y <- c("df_blinding_5y", "df_no_int_5y", "df_parental_5y", "df_quota_5y")
+
+# Loop over each 5y data frame name
+for(df_name_5y in df_names_5y) {
+  
+  # Skip the no intervention df 
+  if (df_name_5y == "df_no_int_5y") {
+    next
+  }
+  
+  # Get the data frame
+  df <- get(df_name_5y)
+  
+  # Subtract df_no_int_5y$percent_women from df$percent_women
+  df$percent_wom <- df$percent_wom - df_no_int_5y$percent_wom
+  #df$percent_wom <- (df$percent_wom - df_no_int_5y$percent_wom)/ df_no_int_10y$percent_wom *100
+  
+  # Assign the modified data frame back to its original name with "_sub" suffix
+  assign(paste0(df_name_5y, "_sub"), df)
+}
+```
+
+## Now with 10 years 
+```{r 10 years}
+df_names_org
+
+# loop for creating datasets only with data from the 10th year
+for(df_name in df_names_org) {
+
+  # Get the data frame
+  df <- get(df_name)
+
+  # Filter the data frame to include only rows where 'month' is 120
+  filtered_df <- df %>% filter(month == 119)
+  
+  #Filtering positions 
+  filtered_df <- filtered_df %>% filter(position <= 3)
+
+  # Create a new name ending with "_10y"
+  new_name <- paste0(df_name, "_10y")
+  
+  # Assign the filtered data frame to the new name
+  assign(new_name, filtered_df)
+}
+```
+
+```{r loop no intervention 10 years, subtracted}
+df_names_10y <- c("df_blinding_10y", "df_no_int_10y", "df_parental_10y", "df_quota_10y")
+
+# Loop over each 5y data frame name
+for(df_name_10y in df_names_10y) {
+
+  # Get the data frame
+  df <- get(df_name_10y)
+  
+  # Subtract df_no_int_5y$percent_women from df$percent_women
+  df$percent_wom <- df$percent_wom - df_no_int_10y$percent_wom
+  
+  # Assign the modified data frame back to its original name with "_sub" suffix
+  assign(paste0(df_name_10y, "_sub"), df)
+}
+```
+
+# Plotting 
+
+quota plotting 
+## Making dataset for plotting
+```{r}
+quota_10_plot <- ggplot(df_quota_10y_sub, aes(x = position, y = percent_wom)) + 
+  geom_bar(stat = "identity") + 
+  scale_x_continuous(breaks = c(1, 2, 3), labels = c("C-suite", "Senior Vice President", "Vice President"))+
+  labs(title = "Gender quota", subtitle = "After 10 years") + 
+  xlab("Level") + 
+  ylab("Percentage Women \n subtracted with no intervention") + 
+  ylim(-1, 6) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Adjust x-axis label orientation
+```
+
+```{r}
+blinding_10_plot <- ggplot(df_blinding_10y_sub, aes(x = position, y = percent_wom)) + 
+  geom_bar(stat = "identity") + 
+  scale_x_continuous(breaks = c(1, 2, 3), labels = c("C-suite", "Senior Vice President", "Vice President"))+
+  labs(title = "Blinding", subtitle = "After 10 years") + 
+  xlab("Level") + 
+  ylab("Percentage Women \n subtracted with no intervention") + 
+  ylim(-1, 6) +  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Adjust x-axis label orientation
+```
+
+```{r}
+parental_10_plot <- ggplot(df_parental_10y_sub, aes(x = position, y = percent_wom)) + 
+  geom_bar(stat = "identity") + 
+  scale_x_continuous(breaks = c(1, 2, 3), labels = c("C-suite", "Senior Vice President", "Vice President"))+
+  labs(title = "50/50 Parental Leave", subtitle = "After 10 years") + 
+  xlab("Level") + 
+  ylab("Percentage Women \n subtracted with no intervention") + 
+  ylim(-1, 6) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Adjust x-axis label orientation
+```
+
+```{r}
+grid.arrange(quota_10_plot, blinding_10_plot, parental_10_plot, nrow=1, ncol=3) 
+```
+
+## creating table of output 
+
+We'll use
+df_blinding_10y_sub
+df_parental_10y_sub
+df_quota_5y_sub
+
+```{r}
+# Combine the three dataframes into one
+combined_df <- bind_rows(
+  mutate(df_blinding_10y_sub, dataset = "Blinding"),
+  mutate(df_parental_10y_sub, dataset = "Parental"),
+  mutate(df_quota_10y_sub, dataset = "Quota")
+)
+
+combined_df
+# Group by position and dataset, then summarize to calculate mean percentage_wom
+summary_table <- combined_df %>%
+  group_by(position, dataset) %>%
+  summarize(mean_percentage_wom = round(mean(percent_wom), 2))
+
+# Reshape the table to have position as rows and dataset as columns
+summary_table_wide <- summary_table %>%
+  pivot_wider(names_from = dataset, values_from = mean_percentage_wom)
+
+# Generate the pretty table using kable and add grid and space between values
+summary_table_kable <- kable(summary_table_wide, caption = "Mean Percentage of Women by Position subtracted with no intervention", align = "c") %>%
+  kable_styling(full_width = FALSE) 
+ 
+summary_table_kable
+```
+# Now with relative difference 
+
+```{r}
+# Combine the three dataframes into one
+combined_df2 <- bind_rows(
+  mutate(df_blinding_10y_sub, dataset = "Blinding"),
+  mutate(df_parental_10y_sub, dataset = "Parental"),
+  mutate(df_quota_5y_sub, dataset = "Quota")
+)
+
+# Group by position and dataset, then summarize to calculate mean percentage_wom
+summary_table2 <- combined_df %>%
+  group_by(position, dataset) %>%
+  summarize(mean_percentage_wom = round(mean(percent_wom), 2))
+
+# Reshape the table to have position as rows and dataset as columns
+summary_table_wide <- summary_table %>%
+  pivot_wider(names_from = dataset, values_from = mean_percentage_wom)
+
+# Generate the pretty table using kable and add grid and space between values
+summary_table_kable <- kable(summary_table_wide, caption = "Mean Percentage of Women by Position subtracted with no intervention", align = "c") %>%
+  kable_styling(full_width = FALSE) 
+ 
+summary_table_kable
+```
+
+```{r}
+# Function to calculate relative difference
+calculate_relative_difference <- function(df_intervention, df_no_intervention) {
+  relative_diff <- (df_intervention - df_no_intervention) / df_no_intervention * 100
+  return(round(relative_diff, 2))
+}
+
+# Calculate relative differences for each intervention
+relative_diff_blinding <- calculate_relative_difference(df_blinding_10y, df_no_int_10y)
+relative_diff_quota <- calculate_relative_difference(df_quota_10y, df_no_int_10y)
+relative_diff_parental <- calculate_relative_difference(df_parental_10y, df_no_int_10y)
+
+# Create dataframe for the table
+top_row <- c("Blinding", "Parental Leave", "Quota")
+second_row <- rep(c("1", "2", "3"), 3)
+third_row <- combined_df$percent_wom
+fourth_row <- c(relative_diff_blinding$percent_wom, relative_diff_parental$percent_wom, relative_diff_quota$percent_wom)
+
+table_data <- data.frame(Intervention = rep(top_row, each = 3),
+                         Level = second_row,
+                         Mean_Percentage_Wom = third_row,
+                         Relative_Difference = fourth_row)
+
+# Generate the pretty table using kable
+table_kable <- kable(table_data, caption = "Mean Percentage of Women subtracted with No Intervention and Relative Difference to No Intervention - After 10 years", align = "c") %>%
+  kable_styling(full_width = FALSE)
+
+table_kable   
+``` 
+
+
+```{r}
+
+```
+
+
